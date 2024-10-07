@@ -9,7 +9,7 @@ bs4page = bs4.BeautifulSoup(page.text, 'html.parser')
 tables = bs4page.find_all('table',{'class':"wikitable"})
 
 from io import StringIO
-import streamlit as st
+
 
 GDP = pd.read_html(StringIO(str(tables[0])))[0].replace(r'\[.*?\]', '', regex=True)
 GDP.columns = ['Country/Territory', 'IMF Forecast', 'IMF Year', 'World Bank Estimate', 'World Bank Year', 'UN Estimate', 'UN Year']
@@ -55,24 +55,24 @@ continent_mapping = {
 
 GDP['Continent'] = GDP['Country/Territory'].map(continent_mapping)
 
-import matplotlib.pyplot as plt
 import streamlit as st
+import plotly.express as px
 
-# Streamlit app
-st.title('GDP Stacked Bar Plot by Continent')
+st.title("Stacked Bar Plot of Country GDPs by Region")
 
-# User selection for GDP source
-gdp_source = st.selectbox('Select GDP Source', ['IMF Forecast', 'World Bank Estimate', 'UN Estimate'])
+# Dropdown for selecting data source
+data_source = st.selectbox("Select Data Source", ["IMF", "UN", "World Bank"])
 
-# Filter out rows with NaN values in the selected GDP source
-GDP_filtered = GDP.dropna(subset=[gdp_source])
+# Filter data based on selected data source
+if data_source == "IMF":
+    GDP['GDP'] = GDP['IMF Forecast']
+elif data_source == "UN":
+    GDP['GDP'] = GDP['UN Estimate']
+else:
+    GDP['GDP'] = GDP['World Bank Estimate']
 
-# Group by continent and sum the GDPs
-continent_gdp = GDP_filtered.groupby('Continent')[gdp_source].sum().sort_values(ascending=False)
+# Create stacked bar plot
+fig = px.bar(GDP, x='Continent', y='GDP', color='Country/Territory', title=f"{data_source} Reported GDP by Region")
 
-# Plotting
-fig, ax = plt.subplots()
-continent_gdp.plot(kind='bar', stacked=True, ax=ax)
-ax.set_ylabel('GDP in USD')
-ax.set_title(f'GDP by Continent ({gdp_source})')
-
+# Display plot
+st.plotly_chart(fig)
